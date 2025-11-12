@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do App - Prueba</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .tasks-section {
+            margin-top: 30px;
+        }
+
+        .task-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+            border-left-color: #28a745;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+        }
+
+        .task-description {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 5px 15px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .btn-toggle {
+            background: #28a745;
+        }
+
+        .btn-toggle:hover {
+            background: #218838;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-badge.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📝 To-Do App - Spring Boot</h1>
+
+    <div id="alertContainer"></div>
+
+    <!-- Formulario para crear tarea -->
+    <div class="form-section">
+        <h2>➕ Crear Nueva Tarea</h2>
+        <form id="taskForm">
+            <div class="form-group">
+                <label for="title">Título *</label>
+                <input type="text" id="title" required placeholder="Ej: Aprender Spring Boot">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descripción</label>
+                <textarea id="description" placeholder="Detalles de la tarea (opcional)"></textarea>
+            </div>
+
+            <button type="submit">Crear Tarea</button>
+        </form>
+    </div>
+
+    <!-- Lista de tareas -->
+    <div class="tasks-section">
+        <h2>📋 Mis Tareas</h2>
+        <div id="tasksList"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8080/api/tasks';
+
+    // Mostrar alertas
+    function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alert);
+
+        setTimeout(() => {
+            alert.remove();
+        }, 3000);
+    }
+
+    // Cargar todas las tareas
+    async function loadTasks() {
+        try {
+            const response = await fetch(API_URL);
+            const tasks = await response.json();
+
+            const tasksList = document.getElementById('tasksList');
+
+            if (tasks.length === 0) {
+                tasksList.innerHTML = '<div class="empty-state">No hay tareas. ¡Crea tu primera tarea!</div>';
+                return;
+            }
+
+            tasksList.innerHTML = tasks.map(task => `
+                    <div class="task-item ${task.completed ? 'completed' : ''}">
+                        <div class="task-content">
+                            <div class="task-title ${task.completed ? 'completed' : ''}">
+                                ${task.title}
+                                <span class="status-badge ${task.completed ? 'completed' : 'pending'}">
+                                    ${task.completed ? '✓ Completada' : '⏳ Pendiente'}
+                                </span>
+                            </div>
+                            ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn-small btn-toggle" onclick="toggleTask(${task.id})">
+                                ${task.completed ? '↩️ Reabrir' : '✓ Completar'}
+                            </button>
+                            <button class="btn-small btn-delete" onclick="deleteTask(${task.id})">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+        } catch (error) {
+            showAlert('Error al cargar las tareas. ¿Está corriendo el servidor?', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    // Crear nueva tarea
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, description })
+            });
+
+            if (response.ok) {
+                showAlert('¡Tarea creada exitosamente!', 'success');
+                document.getElementById('taskForm').reset();
+                loadTasks();
+            } else {
+                showAlert('Error al crear la tarea', 'error');
+            }
+        } catch (error) {
+            showAlert('Error de conexión. ¿Está corriendo el servidor en http://localhost:8080?', 'error');
+            console.error('Error:', error);
+        }
+    });
+
+    // Cambiar estado de tarea
+    async function toggleTask(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}/toggle`, {
+                method: 'PATCH'
+            });
+
+            if (response.ok) {
+                showAlert('Estado actualizado', 'success');
+                loadTasks();
+            }
+        } catch (error) {
+            showAlert('Error al actualizar la tarea', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    // Eliminar tarea
+    async function deleteTask(id) {
+        if (confirm('¿Estás seguro de eliminar esta tarea?')) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('Tarea eliminada', 'success');
+                    loadTasks();
+                }
+            } catch (error) {
+                showAlert('Error al eliminar la tarea', 'error');
+                console.error('Error:', error);
+            }
+        }
+    }
+
+    // Cargar tareas al inicio
+    loadTasks();
+</script>
+</body>
+</html>
